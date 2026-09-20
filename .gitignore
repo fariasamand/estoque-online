@@ -1,0 +1,6 @@
+﻿estoque.db
+estoque.db-shm
+estoque.db-wal
+static/fotos/
+.idea/
+.env

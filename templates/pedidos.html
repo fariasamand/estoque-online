@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pedidos — {{.Loja}}</title>
+    <style>
+        :root {
+            --fundo: #f4f4f6; --cartao: #fff; --texto: #26252b;
+            --suave: #7c7a85; --borda: #e3e2e8;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0 0 40px;
+            font-family: system-ui, sans-serif;
+            background: var(--fundo); color: var(--texto);
+        }
+        .container { max-width: 760px; margin: 0 auto; padding: 0 12px; }
+        header {
+            background: var(--cartao); border-bottom: 1px solid var(--borda);
+            padding: 14px 0; margin-bottom: 18px;
+        }
+        .topo { display: flex; align-items: center; gap: 12px; }
+        h1 { font-size: 18px; margin: 0; flex: 1; }
+        .topo a { font-size: 13px; color: var(--suave); text-decoration: none; }
+        .topo a:hover { color: var(--texto); }
+        .contador {
+            background: #d8202f; color: #fff; font-size: 12px;
+            font-weight: 700; padding: 3px 9px; border-radius: 20px;
+        }
+        .contador.zero { background: #bdbcc4; }
+
+        .abas { display: flex; gap: 6px; margin-bottom: 14px; }
+        .aba {
+            padding: 7px 14px; border: 1px solid var(--borda);
+            border-radius: 20px; background: var(--cartao);
+            font-size: 13px; cursor: pointer; font-family: inherit;
+            color: var(--suave);
+        }
+        .aba.ativa { background: var(--texto); color: #fff; border-color: var(--texto); }
+
+        .pedido {
+            background: var(--cartao); border: 1px solid var(--borda);
+            border-radius: 12px; padding: 14px; margin-bottom: 12px;
+        }
+        .pedido.confirmado { border-left: 4px solid #1fa855; }
+        .pedido.cancelado { border-left: 4px solid #b33; opacity: .65; }
+        .pedido.novo { border-left: 4px solid #e2a03f; }
+
+        .p-topo { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+        .p-num { font-size: 17px; font-weight: 700; }
+        .p-quando { font-size: 12px; color: var(--suave); margin-left: auto; }
+        .p-status {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            padding: 2px 8px; border-radius: 4px; letter-spacing: .3px;
+        }
+        .s-novo { background: #fdf0d9; color: #96631a; }
+        .s-confirmado { background: #ddf3e6; color: #16704a; }
+        .s-cancelado { background: #f8dede; color: #8f2020; }
+
+        .p-cliente { font-size: 14px; font-weight: 600; }
+        .p-contato { font-size: 13px; color: var(--suave); margin-bottom: 10px; }
+        .p-contato a { color: #1fa855; text-decoration: none; font-weight: 600; }
+        .p-entrega {
+            font-size: 13px; background: var(--fundo);
+            padding: 8px 10px; border-radius: 8px; margin-bottom: 10px;
+        }
+        .p-obs { font-size: 13px; font-style: italic; color: var(--suave); margin-bottom: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        td { padding: 7px 0; border-bottom: 1px solid var(--borda); font-size: 14px; }
+        td.q { width: 46px; font-weight: 700; }
+        td.v { text-align: right; color: var(--suave); white-space: nowrap; }
+        .total { text-align: right; font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+
+        .acoes { display: flex; gap: 8px; }
+        .acoes-linha { display: flex; gap: 8px; margin-top: 8px; }
+        .btn {
+            flex: 1; padding: 11px; border: 0; border-radius: 9px;
+            font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+        }
+        .b-confirmar { background: #1fa855; color: #fff; }
+        .b-cancelar { background: none; border: 1px solid var(--borda); color: #b33; }
+        .b-imprimir {
+            background: none; border: 1px solid var(--borda); color: var(--texto);
+            flex: 0 0 auto; padding: 11px 14px;
+        }
+        .btn:disabled { opacity: .5; cursor: default; }
+
+        .vazio { text-align: center; color: var(--suave); padding: 40px 0; font-size: 14px; }
+
+        /* --- área de impressão --- */
+        #impressao { display: none; }
+
+        @media print {
+            body > *:not(#impressao) { display: none !important; }
+            #impressao { display: block !important; }
+            @page { margin: 12mm; }
+            #impressao.cupom { width: 72mm; }
+        }
+
+        #impressao {
+            font-family: system-ui, sans-serif;
+            color: #000; background: #fff;
+        }
+        #impressao .doc-loja { font-size: 19px; font-weight: 700; margin-bottom: 2px; }
+        #impressao .doc-sub { font-size: 12px; color: #444; margin-bottom: 14px; }
+        #impressao .doc-num { font-size: 26px; font-weight: 800; margin-bottom: 2px; }
+        #impressao .doc-data { font-size: 12px; color: #444; margin-bottom: 14px; }
+        #impressao .doc-bloco {
+            border-top: 1px solid #000; padding-top: 9px; margin-top: 9px;
+            font-size: 13px; line-height: 1.55;
+        }
+        #impressao .doc-rot {
+            font-size: 10px; text-transform: uppercase;
+            letter-spacing: .5px; color: #555;
+        }
+        #impressao table { width: 100%; border-collapse: collapse; margin-top: 9px; }
+        #impressao td { padding: 5px 0; border-bottom: 1px dotted #999; font-size: 13px; }
+        #impressao td.q { width: 40px; font-weight: 700; }
+        #impressao td.v { text-align: right; white-space: nowrap; }
+        #impressao .doc-total {
+            text-align: right; font-size: 17px; font-weight: 800;
+            border-top: 2px solid #000; padding-top: 8px; margin-top: 4px;
+        }
+        #impressao .doc-assina {
+            margin-top: 40px; border-top: 1px solid #000;
+            padding-top: 5px; font-size: 11px; text-align: center; width: 60%;
+        }
+        #impressao .doc-rodape {
+            margin-top: 18px; font-size: 10.5px; color: #555; text-align: center;
+        }
+
+        #impressao.cupom { width: 72mm; font-size: 12px; }
+        #impressao.cupom .doc-num { font-size: 22px; }
+        #impressao.cupom .doc-assina { display: none; }
+        #impressao.cupom td { font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container topo">
+        <h1>Pedidos</h1>
+        <a href="/admin">Administração</a>
+        <span class="contador zero" id="contador">0 novos</span>
+    </div>
+</header>
+
+<div class="container">
+    <div class="abas">
+        <button class="aba ativa" data-filtro="novo">Novos</button>
+        <button class="aba" data-filtro="confirmado">Confirmados</button>
+        <button class="aba" data-filtro="cancelado">Cancelados</button>
+        <button class="aba" data-filtro="todos">Todos</button>
+    </div>
+
+    <div id="lista"></div>
+</div>
+
+<div id="impressao"></div>
+
+<script>
+    const NOME_LOJA = "Loja Sem Nome";
+    const ENDERECO_LOJA = "Rua Exemplo, 000 — Bairro, João Pessoa/PB";
+    const FONE_LOJA = "(83) 98794-9405";
+
+    let pedidos = [];
+    let filtro = "novo";
+    let novosAntes = -1;
+
+    function moeda(v) { return v.toFixed(2).replace(".", ","); }
+
+    function escapar(t) {
+        const d = document.createElement("div");
+        d.textContent = t == null ? "" : t;
+        return d.innerHTML;
+    }
+
+    function quando(iso) {
+        const d = new Date(iso);
+        const hoje = new Date();
+        const mesmoDia = d.toDateString() === hoje.toDateString();
+        const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        if (mesmoDia) return "hoje " + hora;
+        return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " + hora;
+    }
+
+    function soDigitos(t) { return (t || "").replace(/\D/g, ""); }
+
+    async function carregar() {
+        try {
+            const r = await fetch("/admin/pedidos/lista");
+            if (!r.ok) return;
+            pedidos = await r.json();
+            desenhar();
+        } catch (e) {
+            console.error("erro ao carregar", e);
+        }
+    }
+
+    function desenhar() {
+        const novos = pedidos.filter(p => p.status === "novo").length;
+        const contador = document.getElementById("contador");
+        contador.textContent = novos + (novos === 1 ? " novo" : " novos");
+        contador.className = "contador" + (novos === 0 ? " zero" : "");
+
+        if (novosAntes >= 0 && novos > novosAntes) {
+            apitar();
+            document.title = "(" + novos + ") Pedidos";
+        }
+        novosAntes = novos;
+
+        const lista = document.getElementById("lista");
+        const visiveis = filtro === "todos" ? pedidos : pedidos.filter(p => p.status === filtro);
+
+        if (!visiveis.length) {
+            lista.innerHTML = '<div class="vazio">Nenhum pedido aqui.</div>';
+            return;
+        }
+
+        lista.innerHTML = visiveis.map(p => {
+            const linhas = p.itens.map(i =>
+                '<tr><td class="q">' + i.quantidade + 'x</td><td>' + escapar(i.nome_produto) +
+                '</td><td class="v">R$ ' + moeda(i.preco_unit * i.quantidade) + '</td></tr>'
+            ).join("");
+
+            const entrega = p.tipo_entrega === "caravana"
+                ? "🚚 <b>Caravana</b> — " + escapar(p.endereco)
+                : "🏬 <b>Retirada na loja</b>";
+
+            const botoesImprimir =
+                '<div class="acoes-linha">' +
+                '<button class="btn b-imprimir" onclick="imprimir(' + p.id + ', \'a4\')">Imprimir A4</button>' +
+                '<button class="btn b-imprimir" onclick="imprimir(' + p.id + ', \'cupom\')">Imprimir cupom</button>' +
+                '</div>';
+
+            const acoes = p.status === "novo"
+                ? '<div class="acoes">' +
+                '<button class="btn b-confirmar" onclick="agir(' + p.id + ', \'confirmar\')">Confirmar e dar baixa</button>' +
+                '<button class="btn b-cancelar" onclick="agir(' + p.id + ', \'cancelar\')">Cancelar</button>' +
+                '</div>'
+                : (p.status === "confirmado"
+                    ? '<div class="acoes"><button class="btn b-cancelar" onclick="agir(' + p.id + ', \'cancelar\')">Cancelar e estornar</button></div>' + botoesImprimir
+                    : '');
+
+            return '<div class="pedido ' + p.status + '">' +
+                '<div class="p-topo">' +
+                '<span class="p-num">#' + p.id + '</span>' +
+                '<span class="p-status s-' + p.status + '">' + p.status + '</span>' +
+                '<span class="p-quando">' + quando(p.criado_em) + '</span>' +
+                '</div>' +
+                '<div class="p-cliente">' + escapar(p.cliente) + '</div>' +
+                '<div class="p-contato">' + escapar(p.telefone) +
+                ' · <a href="https://wa.me/55' + soDigitos(p.telefone) + '" target="_blank">abrir conversa</a></div>' +
+                '<div class="p-entrega">' + entrega + '</div>' +
+                (p.observacao ? '<div class="p-obs">"' + escapar(p.observacao) + '"</div>' : '') +
+                '<table>' + linhas + '</table>' +
+                '<div class="total">Total: R$ ' + moeda(p.total) + '</div>' +
+                acoes +
+                '</div>';
+        }).join("");
+    }
+
+    function imprimir(id, formato) {
+        const p = pedidos.find(x => x.id === id);
+        if (!p) return;
+
+        const linhas = p.itens.map(i =>
+            '<tr><td class="q">' + i.quantidade + 'x</td>' +
+            '<td>' + escapar(i.nome_produto) + '</td>' +
+            '<td class="v">R$ ' + moeda(i.preco_unit * i.quantidade) + '</td></tr>'
+        ).join("");
+
+        const entrega = p.tipo_entrega === "caravana"
+            ? '<div class="doc-rot">Entrega por caravana</div>' + escapar(p.endereco)
+            : '<div class="doc-rot">Retirada</div>Retirar na loja';
+
+        const data = new Date(p.criado_em).toLocaleString("pt-BR", {
+            day: "2-digit", month: "2-digit", year: "numeric",
+            hour: "2-digit", minute: "2-digit"
+        });
+
+        const area = document.getElementById("impressao");
+        area.className = formato === "cupom" ? "cupom" : "";
+
+        area.innerHTML =
+            '<div class="doc-loja">' + NOME_LOJA + '</div>' +
+            '<div class="doc-sub">' + ENDERECO_LOJA + ' · ' + FONE_LOJA + '</div>' +
+
+            '<div class="doc-num">PEDIDO #' + p.id + '</div>' +
+            '<div class="doc-data">' + data + '</div>' +
+
+            '<div class="doc-bloco">' +
+            '<div class="doc-rot">Cliente</div>' +
+            escapar(p.cliente) + '<br>' + escapar(p.telefone) +
+            '</div>' +
+
+            '<div class="doc-bloco">' + entrega + '</div>' +
+
+            (p.observacao
+                ? '<div class="doc-bloco"><div class="doc-rot">Observação</div>' + escapar(p.observacao) + '</div>'
+                : '') +
+
+            '<div class="doc-bloco">' +
+            '<div class="doc-rot">Itens</div>' +
+            '<table>' + linhas + '</table>' +
+            '<div class="doc-total">Total: R$ ' + moeda(p.total) + '</div>' +
+            '</div>' +
+
+            '<div class="doc-assina">Recebido por</div>' +
+            '<div class="doc-rodape">Documento sem valor fiscal</div>';
+
+        window.print();
+    }
+
+    async function agir(id, acao) {
+        if (acao === "cancelar" && !confirm("Cancelar o pedido #" + id + "?")) return;
+
+        document.querySelectorAll(".btn").forEach(b => b.disabled = true);
+
+        try {
+            const r = await fetch("/admin/pedidos/" + acao + "?id=" + id, { method: "POST" });
+            if (!r.ok) {
+                alert(await r.text());
+            }
+        } catch (e) {
+            alert("Erro de conexão.");
+        }
+
+        await carregar();
+    }
+
+    function apitar() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const vol = ctx.createGain();
+            osc.connect(vol); vol.connect(ctx.destination);
+            osc.frequency.value = 880;
+            vol.gain.setValueAtTime(.25, ctx.currentTime);
+            vol.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .5);
+            osc.start(); osc.stop(ctx.currentTime + .5);
+        } catch (e) { /* sem som, tudo bem */ }
+    }
+
+    document.querySelectorAll(".aba").forEach(aba => {
+        aba.addEventListener("click", () => {
+            document.querySelectorAll(".aba").forEach(a => a.classList.remove("ativa"));
+            aba.classList.add("ativa");
+            filtro = aba.dataset.filtro;
+            desenhar();
+        });
+    });
+
+    document.addEventListener("click", () => { document.title = "Pedidos"; });
+
+    carregar();
+    setInterval(carregar, 20000);
+</script>
+
+</body>
+</html>

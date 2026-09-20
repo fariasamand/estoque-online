@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Administração — {{.Loja}}</title>
+    <style>
+        :root {
+            --fundo: #f4f4f6; --cartao: #fff; --texto: #26252b;
+            --suave: #7c7a85; --borda: #e3e2e8; --verde: #1f8a5b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0 0 50px;
+            font-family: system-ui, sans-serif;
+            background: var(--fundo); color: var(--texto);
+        }
+        .container { max-width: 820px; margin: 0 auto; padding: 0 12px; }
+        header {
+            background: var(--cartao); border-bottom: 1px solid var(--borda);
+            padding: 14px 0; margin-bottom: 18px;
+        }
+        .topo { display: flex; align-items: center; gap: 14px; }
+        h1 { font-size: 18px; margin: 0; flex: 1; }
+        .topo a { font-size: 13px; color: var(--suave); text-decoration: none; }
+        .topo a:hover { color: var(--texto); }
+
+        h2 { font-size: 15px; margin: 0 0 12px; }
+
+        .bloco {
+            background: var(--cartao); border: 1px solid var(--borda);
+            border-radius: 12px; padding: 16px; margin-bottom: 16px;
+        }
+        label { display: block; font-size: 12.5px; color: var(--suave); margin-bottom: 11px; }
+        input, select, textarea {
+            width: 100%; margin-top: 4px; padding: 9px;
+            border: 1px solid var(--borda); border-radius: 8px;
+            font-size: 14px; font-family: inherit; background: var(--fundo); color: var(--texto);
+        }
+        .dupla { display: flex; gap: 10px; }
+        .dupla > * { flex: 1; }
+
+        button {
+            padding: 11px 18px; border: 0; border-radius: 9px;
+            background: var(--verde); color: #fff;
+            font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+        }
+        button:disabled { opacity: .5; cursor: default; }
+        button.claro {
+            background: none; border: 1px solid var(--borda); color: var(--suave);
+        }
+        .linha-btn { display: flex; gap: 8px; align-items: center; }
+
+        .aviso { font-size: 13px; margin-top: 10px; min-height: 18px; }
+        .aviso.ok { color: var(--verde); }
+        .aviso.ruim { color: #b00020; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left; font-size: 11.5px; text-transform: uppercase;
+            color: var(--suave); padding: 6px 4px; border-bottom: 1px solid var(--borda);
+            letter-spacing: .3px;
+        }
+        td { padding: 9px 4px; border-bottom: 1px solid var(--borda); font-size: 14px; }
+        td img {
+            width: 42px; height: 42px; object-fit: cover;
+            border-radius: 7px; display: block; background: var(--fundo);
+        }
+        .cat { font-size: 11px; color: var(--suave); }
+        .saldo { font-weight: 700; }
+        .saldo.zero { color: #b00020; }
+        .saldo.baixo { color: #b4551c; }
+        .mini {
+            padding: 5px 10px; font-size: 12px;
+            background: none; border: 1px solid var(--borda); color: var(--suave);
+        }
+        .previa {
+            width: 70px; height: 70px; object-fit: cover; border-radius: 9px;
+            margin-bottom: 10px; display: none; border: 1px solid var(--borda);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container topo">
+        <h1>Administração</h1>
+        <a href="/admin/pedidos">Pedidos</a>
+        <a href="/catalogo" target="_blank">Ver catálogo</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="bloco">
+        <h2 id="titulo-produto">Novo produto</h2>
+
+        <input type="hidden" id="p-id" value="">
+
+        <img class="previa" id="previa">
+
+        <label>Nome
+            <input id="p-nome" type="text" placeholder="Toalha de banho felpuda">
+        </label>
+
+        <label>Descrição
+            <input id="p-descricao" type="text" placeholder="100% algodão, 70x140cm">
+        </label>
+
+        <label>Categoria
+            <select id="p-categoria">
+                <option value="Banho">Banho</option>
+                <option value="Cama">Cama</option>
+                <option value="Mesa">Mesa</option>
+                <option value="Decoração">Decoração</option>
+            </select>
+        </label>
+
+        <label>Preço de venda (R$)
+            <input id="p-preco" type="text" inputmode="decimal" placeholder="39,90">
+        </label>
+
+        <label>Foto do produto
+            <input id="p-foto" type="file" accept="image/*">
+        </label>
+
+        <div class="linha-btn">
+            <button id="salvar-produto">Salvar produto</button>
+            <button class="claro" id="limpar-produto" style="display:none">Cancelar edição</button>
+        </div>
+
+        <div class="aviso" id="aviso-produto"></div>
+    </div>
+
+    <div class="bloco">
+        <h2>Movimentar estoque</h2>
+
+        <label>Produto
+            <select id="m-produto"></select>
+        </label>
+
+        <div class="dupla">
+            <label>Tipo
+                <select id="m-tipo">
+                    <option value="entrada">Entrada (chegou mercadoria)</option>
+                    <option value="saida">Saída (venda no balcão, perda)</option>
+                </select>
+            </label>
+
+            <label>Quantidade
+                <input id="m-qtd" type="number" min="1" value="1">
+            </label>
+        </div>
+
+        <button id="salvar-mov">Registrar</button>
+        <div class="aviso" id="aviso-mov"></div>
+    </div>
+
+    <div class="bloco">
+        <h2>Produtos e saldo</h2>
+        <table>
+            <thead>
+            <tr><th></th><th>Produto</th><th>Preço</th><th>Saldo</th><th></th></tr>
+            </thead>
+            <tbody id="tabela"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    let produtos = [];
+
+    function moeda(v) { return v.toFixed(2).replace(".", ","); }
+
+    function mostrar(elemento, texto, ok) {
+        const el = document.getElementById(elemento);
+        el.textContent = texto;
+        el.className = "aviso " + (ok ? "ok" : "ruim");
+        if (ok) setTimeout(() => { el.textContent = ""; }, 4000);
+    }
+
+    async function carregar() {
+        try {
+            const r = await fetch("/admin/produtos/lista");
+            if (!r.ok) return;
+            produtos = await r.json();
+            desenharTabela();
+            desenharSelect();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function desenharTabela() {
+        const corpo = document.getElementById("tabela");
+
+        if (!produtos.length) {
+            corpo.innerHTML = '<tr><td colspan="5" style="color:#7c7a85;padding:20px 4px">Nenhum produto cadastrado.</td></tr>';
+            return;
+        }
+
+        corpo.innerHTML = produtos.map(p => {
+            const classe = p.saldo === 0 ? "zero" : (p.saldo <= 3 ? "baixo" : "");
+            const foto = p.imagem
+                ? '<img src="/static/fotos/' + p.imagem + '" alt="">'
+                : '<div style="width:42px;height:42px;border-radius:7px;background:#f4f4f6"></div>';
+
+            return '<tr>' +
+                '<td>' + foto + '</td>' +
+                '<td>' + p.nome + '<br><span class="cat">' + (p.categoria || "sem categoria") + '</span></td>' +
+                '<td>R$ ' + moeda(p.preco) + '</td>' +
+                '<td class="saldo ' + classe + '">' + p.saldo + '</td>' +
+                '<td><button class="mini" onclick="editar(' + p.id + ')">Editar</button></td>' +
+                '</tr>';
+        }).join("");
+    }
+
+    function desenharSelect() {
+        const sel = document.getElementById("m-produto");
+        const anterior = sel.value;
+        sel.innerHTML = produtos.map(p =>
+            '<option value="' + p.id + '">' + p.nome + ' (saldo: ' + p.saldo + ')</option>'
+        ).join("");
+        if (anterior) sel.value = anterior;
+    }
+
+    function editar(id) {
+        const p = produtos.find(x => x.id === id);
+        if (!p) return;
+
+        document.getElementById("p-id").value = p.id;
+        document.getElementById("p-nome").value = p.nome;
+        document.getElementById("p-descricao").value = p.descricao || "";
+        document.getElementById("p-categoria").value = p.categoria || "Banho";
+        document.getElementById("p-preco").value = moeda(p.preco);
+        document.getElementById("p-foto").value = "";
+
+        const previa = document.getElementById("previa");
+        if (p.imagem) {
+            previa.src = "/static/fotos/" + p.imagem;
+            previa.style.display = "block";
+        } else {
+            previa.style.display = "none";
+        }
+
+        document.getElementById("titulo-produto").textContent = "Editando: " + p.nome;
+        document.getElementById("limpar-produto").style.display = "inline-block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function limparFormulario() {
+        document.getElementById("p-id").value = "";
+        document.getElementById("p-nome").value = "";
+        document.getElementById("p-descricao").value = "";
+        document.getElementById("p-categoria").value = "Banho";
+        document.getElementById("p-preco").value = "";
+        document.getElementById("p-foto").value = "";
+        document.getElementById("previa").style.display = "none";
+        document.getElementById("titulo-produto").textContent = "Novo produto";
+        document.getElementById("limpar-produto").style.display = "none";
+    }
+
+    document.getElementById("limpar-produto").addEventListener("click", limparFormulario);
+
+    document.getElementById("p-foto").addEventListener("change", (e) => {
+        const arquivo = e.target.files[0];
+        const previa = document.getElementById("previa");
+        if (!arquivo) { previa.style.display = "none"; return; }
+        previa.src = URL.createObjectURL(arquivo);
+        previa.style.display = "block";
+    });
+
+    document.getElementById("salvar-produto").addEventListener("click", async () => {
+        const nome = document.getElementById("p-nome").value.trim();
+        const preco = document.getElementById("p-preco").value.trim();
+
+        if (nome.length < 2) { mostrar("aviso-produto", "Informe o nome do produto.", false); return; }
+        if (!preco) { mostrar("aviso-produto", "Informe o preço.", false); return; }
+
+        const dados = new FormData();
+        dados.append("id", document.getElementById("p-id").value);
+        dados.append("nome", nome);
+        dados.append("descricao", document.getElementById("p-descricao").value.trim());
+        dados.append("categoria", document.getElementById("p-categoria").value);
+        dados.append("preco", preco);
+
+        const foto = document.getElementById("p-foto").files[0];
+        if (foto) dados.append("foto", foto);
+
+        const botao = document.getElementById("salvar-produto");
+        botao.disabled = true;
+        botao.textContent = "Salvando...";
+
+        try {
+            const r = await fetch("/admin/produtos/salvar", { method: "POST", body: dados });
+            if (!r.ok) { mostrar("aviso-produto", await r.text(), false); return; }
+
+            const p = await r.json();
+            mostrar("aviso-produto", "Produto \"" + p.nome + "\" salvo.", true);
+            limparFormulario();
+            await carregar();
+        } catch (e) {
+            mostrar("aviso-produto", "Erro de conexão.", false);
+        } finally {
+            botao.disabled = false;
+            botao.textContent = "Salvar produto";
+        }
+    });
+
+    document.getElementById("salvar-mov").addEventListener("click", async () => {
+        const produtoID = parseInt(document.getElementById("m-produto").value, 10);
+        const tipo = document.getElementById("m-tipo").value;
+        const qtd = parseInt(document.getElementById("m-qtd").value, 10);
+
+        if (!produtoID) { mostrar("aviso-mov", "Selecione um produto.", false); return; }
+        if (!qtd || qtd < 1) { mostrar("aviso-mov", "Quantidade inválida.", false); return; }
+
+        const botao = document.getElementById("salvar-mov");
+        botao.disabled = true;
+
+        try {
+            const r = await fetch("/movimentacao", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ produto_id: produtoID, tipo: tipo, quantidade: qtd })
+            });
+
+            if (!r.ok) { mostrar("aviso-mov", await r.text(), false); return; }
+
+            mostrar("aviso-mov", (tipo === "entrada" ? "Entrada" : "Saída") + " de " + qtd + " registrada.", true);
+            document.getElementById("m-qtd").value = 1;
+            await carregar();
+        } catch (e) {
+            mostrar("aviso-mov", "Erro de conexão.", false);
+        } finally {
+            botao.disabled = false;
+        }
+    });
+
+    carregar();
+</script>
+
+</body>
+</html>

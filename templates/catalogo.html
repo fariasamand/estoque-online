@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Loja}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fundo: #f7f4ef;
+      --cartao: #ffffff;
+      --texto: #2f2a26;
+      --suave: #8a807a;
+      --marca: #7d5a4f;
+      --borda: #e8e1d8;
+      --verde: #1f8a5b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0 0 80px;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--fundo); color: var(--texto);
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 14px; }
+
+    .faixa {
+      background: var(--marca); color: #fff;
+      font-size: 12.5px; text-align: center; padding: 8px 14px;
+    }
+    header {
+      background: var(--cartao);
+      border-bottom: 1px solid var(--borda);
+      padding: 18px 0 16px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .marca {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 26px; color: var(--marca);
+      letter-spacing: -.3px; line-height: 1;
+    }
+    .sub { font-size: 12.5px; color: var(--suave); margin-top: 5px; }
+
+    .filtros {
+      display: flex; gap: 8px; margin: 20px 0 6px;
+      overflow-x: auto; padding-bottom: 6px;
+      scrollbar-width: none;
+    }
+    .filtros::-webkit-scrollbar { display: none; }
+    .filtro {
+      flex: 0 0 auto; padding: 8px 16px;
+      border: 1px solid var(--borda); border-radius: 20px;
+      background: var(--cartao); color: var(--suave);
+      font-size: 13px; font-family: inherit; cursor: pointer;
+      white-space: nowrap;
+    }
+    .filtro.ativo {
+      background: var(--marca); color: #fff; border-color: var(--marca);
+    }
+
+    .secao { margin-bottom: 30px; }
+    .secao.escondida { display: none; }
+    h2 { font-family: 'Fraunces', Georgia, serif; font-size: 20px; margin: 22px 0 14px; }
+    .qtd-secao {
+      font-family: 'Inter', sans-serif; font-size: 12px;
+      font-weight: 400; color: var(--suave); vertical-align: middle;
+    }
+
+    .grade {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--cartao); border: 1px solid var(--borda);
+      border-radius: 14px; overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: box-shadow .15s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+    .card.indisponivel { opacity: .5; }
+
+    .foto { position: relative; background: #efe9e1; }
+    .foto img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; }
+    .selo {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,.72); color: #fff;
+      font-size: 10.5px; font-weight: 600;
+      padding: 3px 8px; border-radius: 20px;
+    }
+    .selo.alerta { background: #b4551c; }
+
+    .info { padding: 11px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .nome { font-size: 13.5px; font-weight: 500; line-height: 1.35; }
+    .descricao {
+      font-size: 11.5px; color: var(--suave); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .preco { font-size: 17px; font-weight: 600; margin-top: auto; padding-top: 8px; }
+    .preco small { font-size: 11px; font-weight: 400; color: var(--suave); }
+
+    .compra { display: flex; gap: 6px; margin-top: 9px; }
+    .qtd {
+      width: 50px; padding: 7px 4px; text-align: center;
+      border: 1px solid var(--borda); border-radius: 8px;
+      font-size: 13px; font-family: inherit; background: var(--fundo);
+    }
+    .add {
+      flex: 1; padding: 7px; border: 0; border-radius: 8px;
+      background: var(--verde); color: #fff;
+      font-size: 12.5px; font-weight: 600; font-family: inherit;
+      cursor: pointer;
+    }
+    .add:hover { filter: brightness(1.08); }
+    .fora { font-size: 12.5px; color: #a33; font-weight: 600; padding: 9px 0 3px; }
+
+    .painel {
+      position: fixed; bottom: 62px; left: 0; right: 0;
+      background: var(--cartao); border-top: 1px solid var(--borda);
+      max-height: 50vh; overflow-y: auto; z-index: 19;
+      display: none; box-shadow: 0 -4px 20px rgba(0,0,0,.1);
+    }
+    .painel.aberto { display: block; }
+    .painel-in { max-width: 1080px; margin: 0 auto; padding: 14px; }
+    .painel-topo { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .fechar { background: none; border: 0; font-size: 16px; cursor: pointer; color: var(--suave); }
+    .linha {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid var(--borda); font-size: 13px;
+    }
+    .linha .l-nome { flex: 1; }
+    .linha .l-qtd { color: var(--suave); }
+    .linha .remover { background: none; border: 0; color: #b33; cursor: pointer; font-size: 15px; }
+
+    .barra {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--cartao); border-top: 1px solid var(--borda);
+      padding: 11px 14px; z-index: 20;
+      box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+    }
+    .barra-in {
+      max-width: 1080px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .resumo { font-size: 13px; color: var(--suave); flex: 1; cursor: pointer; }
+    .resumo b { color: var(--texto); font-size: 15px; }
+    .finalizar {
+      background: #1fa855; color: #fff; border: 0;
+      padding: 11px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      cursor: pointer;
+    }
+    .finalizar:disabled { background: #cfcac4; cursor: default; }
+
+    .modal {
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .modal.aberto { display: flex; }
+    .modal-caixa {
+      background: var(--cartao); border-radius: 16px;
+      width: 100%; max-width: 420px;
+      padding: 18px; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-topo {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 14px;
+    }
+    .modal label {
+      display: block; font-size: 12.5px;
+      color: var(--suave); margin-bottom: 12px;
+    }
+    .modal input, .modal select, .modal textarea {
+      width: 100%; margin-top: 5px; padding: 10px;
+      border: 1px solid var(--borda); border-radius: 9px;
+      font-size: 14px; font-family: inherit;
+      color: var(--texto); background: var(--fundo);
+    }
+    .enviar {
+      width: 100%; padding: 13px; border: 0; border-radius: 10px;
+      background: #1fa855; color: #fff;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; margin-top: 4px;
+    }
+    .enviar:disabled { background: #cfcac4; cursor: default; }
+    .wpp {
+      display: block; text-decoration: none;
+      text-align: center; background: #25d366;
+    }
+    .secundario {
+      width: 100%; padding: 11px; margin-top: 9px;
+      border: 1px solid var(--borda); border-radius: 10px;
+      background: none; color: var(--suave);
+      font-size: 13.5px; font-family: inherit; cursor: pointer;
+    }
+    .erro {
+      color: #b00020; font-size: 12.5px;
+      margin-bottom: 10px; min-height: 16px;
+    }
+    #sucesso { text-align: center; padding: 10px 0; }
+    #sucesso .ok {
+      width: 54px; height: 54px; margin: 0 auto 14px;
+      border-radius: 50%; background: #e4f5ea; color: #1fa855;
+      font-size: 28px; line-height: 54px;
+    }
+    #sucesso h3 { margin: 0 0 8px; font-family: 'Fraunces', Georgia, serif; }
+    #sucesso p { font-size: 13.5px; color: var(--suave); margin: 5px 0; }
+    #sucesso .aviso { font-size: 12.5px; margin-bottom: 16px; }
+
+    footer {
+      margin-top: 40px; padding: 22px 0 10px;
+      border-top: 1px solid var(--borda);
+      font-size: 12.5px; color: var(--suave); line-height: 1.8;
+    }
+    .vazio { color: var(--suave); padding: 30px 0; }
+  </style>
+</head>
+<body>
+
+<div class="faixa">Entrega por caravana ou retirada na loja</div>
+
+<header>
+  <div class="container">
+    <div class="marca">{{.Loja}}</div>
+    <div class="sub">Cama, mesa e banho</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="filtros" id="filtros">
+    <button class="filtro ativo" data-cat="todos">Tudo</button>
+    {{range .Secoes}}
+    <button class="filtro" data-cat="{{.Nome}}">{{.Nome}}</button>
+    {{end}}
+  </div>
+
+  {{range .Secoes}}
+  <section class="secao" data-cat="{{.Nome}}">
+    <h2>{{.Nome}} <span class="qtd-secao">{{len .Itens}}</span></h2>
+
+    <div class="grade">
+      {{range .Itens}}
+      <div class="card {{if not .Disponivel}}indisponivel{{end}}">
+        <div class="foto">
+          <img src="/static/fotos/{{.Imagem}}" alt="{{.Nome}}" loading="lazy">
+          {{if not .Disponivel}}
+          <span class="selo">Esgotado</span>
+          {{else if le .Saldo 3}}
+          <span class="selo alerta">Últimas unidades</span>
+          {{end}}
+        </div>
+
+        <div class="info">
+          <div class="nome">{{.Nome}}</div>
+          {{if .Descricao}}<div class="descricao">{{.Descricao}}</div>{{end}}
+          <div class="preco">R$ {{.Preco}} <small>un.</small></div>
+
+          {{if .Disponivel}}
+          <div class="compra">
+            <input class="qtd" type="number" value="1" min="1" max="{{.Saldo}}">
+            <button class="add"
+                    data-id="{{.ID}}"
+                    data-nome="{{.Nome}}"
+                    data-preco="{{.PrecoNum}}"
+                    data-saldo="{{.Saldo}}">Adicionar</button>
+          </div>
+          {{else}}
+          <div class="fora">Indisponível</div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </section>
+  {{end}}
+
+  {{if eq .Total 0}}
+  <p class="vazio">Nenhum produto cadastrado ainda.</p>
+  {{end}}
+
+  <footer>
+    <div><b>{{.Loja}}</b></div>
+    <div>Rua Exemplo, 000 — Bairro, João Pessoa/PB</div>
+    <div>Seg a sex 8h–18h · Sáb 8h–12h</div>
+    <div>WhatsApp (83) 98794-9405</div>
+  </footer>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-caixa">
+    <div class="modal-topo">
+      <b>Finalizar pedido</b>
+      <button class="fechar" id="fechar-modal">✕</button>
+    </div>
+
+    <div id="form-pedido">
+      <label>Seu nome
+        <input id="f-nome" type="text" placeholder="Nome completo">
+      </label>
+
+      <label>Seu WhatsApp para contato
+        <input id="f-telefone" type="tel" placeholder="(83) 99999-9999">
+      </label>
+
+      <label>Como quer receber?
+        <select id="f-entrega">
+          <option value="retirada">Retirar na loja</option>
+          <option value="caravana">Entrega por caravana</option>
+        </select>
+      </label>
+
+      <label id="campo-endereco" style="display:none">Endereço de entrega
+        <input id="f-endereco" type="text" placeholder="Rua, número, bairro, cidade">
+      </label>
+
+      <label>Observação (opcional)
+        <textarea id="f-obs" rows="2" placeholder="Alguma informação para a loja"></textarea>
+      </label>
+
+      <div class="erro" id="f-erro"></div>
+
+      <button class="enviar" id="confirmar-pedido">Confirmar pedido</button>
+    </div>
+
+    <div id="sucesso" style="display:none">
+      <div class="ok">✓</div>
+      <h3>Pedido #<span id="num-pedido"></span> registrado</h3>
+      <p class="aviso">Seu pedido só é confirmado após falar com a loja no WhatsApp para combinar o pagamento.</p>
+      <a class="enviar wpp" id="abrir-wpp" href="#">Abrir WhatsApp da loja</a>
+      <button class="secundario" id="novo-pedido">Voltar ao catálogo</button>
+    </div>
+  </div>
+</div>
+
+<div class="painel" id="painel">
+  <div class="painel-in">
+    <div class="painel-topo">
+      <b>Seu pedido</b>
+      <button class="fechar" id="fechar">✕</button>
+    </div>
+    <div id="lista-itens"></div>
+  </div>
+</div>
+
+<div class="barra">
+  <div class="barra-in">
+    <div class="resumo" id="resumo">Carrinho vazio</div>
+    <button class="finalizar" id="finalizar" disabled>Enviar pedido</button>
+  </div>
+</div>
+<script>
+  const LOJA_WHATSAPP = "5583987949405";
+
+  const carrinho = [];
+
+  const resumo = document.getElementById("resumo");
+  const finalizar = document.getElementById("finalizar");
+  const painel = document.getElementById("painel");
+  const listaItens = document.getElementById("lista-itens");
+
+  const modal = document.getElementById("modal");
+  const formPedido = document.getElementById("form-pedido");
+  const sucesso = document.getElementById("sucesso");
+  const erro = document.getElementById("f-erro");
+  const btnConfirmar = document.getElementById("confirmar-pedido");
+  const selEntrega = document.getElementById("f-entrega");
+  const campoEndereco = document.getElementById("campo-endereco");
+
+  document.querySelectorAll(".filtro").forEach(botao => {
+    botao.addEventListener("click", () => {
+      const cat = botao.dataset.cat;
+
+      document.querySelectorAll(".filtro").forEach(b => b.classList.remove("ativo"));
+      botao.classList.add("ativo");
+
+      document.querySelectorAll(".secao").forEach(secao => {
+        const mostrar = cat === "todos" || secao.dataset.cat === cat;
+        secao.classList.toggle("escondida", !mostrar);
+      });
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  document.querySelectorAll(".add").forEach(botao => {
+    botao.addEventListener("click", () => {
+      const input = botao.parentElement.querySelector(".qtd");
+      const qtd = parseInt(input.value, 10);
+      const saldo = parseInt(botao.dataset.saldo, 10);
+
+      if (!qtd || qtd < 1) return;
+      if (qtd > saldo) {
+        alert("Temos apenas " + saldo + " unidade(s) deste produto.");
+        return;
+      }
+
+      const id = parseInt(botao.dataset.id, 10);
+      const existente = carrinho.find(i => i.id === id);
+
+      if (existente) {
+        if (existente.qtd + qtd > saldo) {
+          alert("Você já tem " + existente.qtd + " no carrinho. Máximo: " + saldo + ".");
+          return;
+        }
+        existente.qtd += qtd;
+      } else {
+        carrinho.push({
+          id: id,
+          nome: botao.dataset.nome,
+          preco: parseFloat(botao.dataset.preco),
+          qtd: qtd,
+          saldo: saldo
+        });
+      }
+
+      input.value = 1;
+      atualizar();
+    });
+  });
+
+  function remover(id) {
+    const i = carrinho.findIndex(item => item.id === id);
+    if (i >= 0) carrinho.splice(i, 1);
+    atualizar();
+  }
+
+  function moeda(v) {
+    return v.toFixed(2).replace(".", ",");
+  }
+
+  function atualizar() {
+    const pecas = carrinho.reduce((s, i) => s + i.qtd, 0);
+    const total = carrinho.reduce((s, i) => s + i.preco * i.qtd, 0);
+
+    if (pecas === 0) {
+      resumo.textContent = "Carrinho vazio";
+      finalizar.disabled = true;
+      painel.classList.remove("aberto");
+    } else {
+      resumo.innerHTML = pecas + " item(ns) · <b>R$ " + moeda(total) + "</b>";
+      finalizar.disabled = false;
+    }
+
+    listaItens.innerHTML = "";
+    carrinho.forEach(item => {
+      const linha = document.createElement("div");
+      linha.className = "linha";
+
+      const nome = document.createElement("span");
+      nome.className = "l-nome";
+      nome.textContent = item.nome;
+
+      const qtd = document.createElement("span");
+      qtd.className = "l-qtd";
+      qtd.textContent = item.qtd + "x  R$ " + moeda(item.preco * item.qtd);
+
+      const btn = document.createElement("button");
+      btn.className = "remover";
+      btn.textContent = "X";
+      btn.addEventListener("click", () => remover(item.id));
+
+      linha.append(nome, qtd, btn);
+      listaItens.appendChild(linha);
+    });
+  }
+
+  resumo.addEventListener("click", () => {
+    if (carrinho.length) painel.classList.toggle("aberto");
+  });
+
+  document.getElementById("fechar").addEventListener("click", () => {
+    painel.classList.remove("aberto");
+  });
+
+  finalizar.addEventListener("click", () => {
+    if (!carrinho.length) return;
+    erro.textContent = "";
+    formPedido.style.display = "block";
+    sucesso.style.display = "none";
+    modal.classList.add("aberto");
+  });
+
+  selEntrega.addEventListener("change", () => {
+    campoEndereco.style.display = selEntrega.value === "caravana" ? "block" : "none";
+  });
+
+  document.getElementById("fechar-modal").addEventListener("click", () => {
+    modal.classList.remove("aberto");
+  });
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.remove("aberto");
+  });
+
+  btnConfirmar.addEventListener("click", async () => {
+    const nome = document.getElementById("f-nome").value.trim();
+    const telefone = document.getElementById("f-telefone").value.trim();
+    const entrega = selEntrega.value;
+    const endereco = document.getElementById("f-endereco").value.trim();
+    const obs = document.getElementById("f-obs").value.trim();
+
+    if (nome.length < 3) {
+      erro.textContent = "Informe seu nome completo.";
+      return;
+    }
+    if (telefone.replace(/\D/g, "").length < 10) {
+      erro.textContent = "Informe um WhatsApp valido com DDD.";
+      return;
+    }
+    if (entrega === "caravana" && endereco.length < 10) {
+      erro.textContent = "Informe o endereco de entrega.";
+      return;
+    }
+
+    erro.textContent = "";
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = "Enviando...";
+
+    try {
+      const resposta = await fetch("/pedidos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente: nome,
+          telefone: telefone,
+          tipo_entrega: entrega,
+          endereco: endereco,
+          observacao: obs,
+          itens: carrinho.map(i => ({
+            produto_id: i.id,
+            quantidade: i.qtd
+          }))
+        })
+      });
+
+      if (!resposta.ok) {
+        erro.textContent = await resposta.text();
+        return;
+      }
+
+      const dados = await resposta.json();
+      document.getElementById("num-pedido").textContent = dados.id;
+
+      let texto = "Ola! Acabei de fazer o pedido #" + dados.id + " no site.\n\n";
+      carrinho.forEach(i => {
+        texto += "- " + i.qtd + "x " + i.nome + " - R$ " + moeda(i.preco * i.qtd) + "\n";
+      });
+      texto += "\nTotal: R$ " + moeda(carrinho.reduce((s, i) => s + i.preco * i.qtd, 0));
+      texto += "\nEntrega: " + (entrega === "caravana" ? "caravana - " + endereco : "retirada na loja");
+      texto += "\n\nGostaria de combinar o pagamento.";
+
+      const linkWpp = "https://wa.me/" + LOJA_WHATSAPP + "?text=" + encodeURIComponent(texto);
+      document.getElementById("abrir-wpp").href = linkWpp;
+
+      formPedido.style.display = "none";
+      sucesso.style.display = "block";
+
+      carrinho.length = 0;
+      atualizar();
+
+      window.location.href = linkWpp;
+
+    } catch (e) {
+      erro.textContent = "Nao foi possivel enviar. Tente novamente.";
+      console.error(e);
+    } finally {
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = "Confirmar pedido";
+    }
+  });
+
+  document.getElementById("novo-pedido").addEventListener("click", () => {
+    modal.classList.remove("aberto");
+    location.reload();
+  });
+</script>
+
+</body>
+</html>
