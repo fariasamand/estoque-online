@@ -30,7 +30,7 @@
         }
         .contador.zero { background: #bdbcc4; }
 
-        .abas { display: flex; gap: 6px; margin-bottom: 14px; }
+        .abas { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
         .aba {
             padding: 7px 14px; border: 1px solid var(--borda);
             border-radius: 20px; background: var(--cartao);
@@ -46,6 +46,7 @@
         .pedido.confirmado { border-left: 4px solid #1fa855; }
         .pedido.cancelado { border-left: 4px solid #b33; opacity: .65; }
         .pedido.novo { border-left: 4px solid #e2a03f; }
+        .pedido.expirado { border-left: 4px solid #9a98a3; }
 
         .p-topo { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
         .p-num { font-size: 17px; font-weight: 700; }
@@ -57,6 +58,7 @@
         .s-novo { background: #fdf0d9; color: #96631a; }
         .s-confirmado { background: #ddf3e6; color: #16704a; }
         .s-cancelado { background: #f8dede; color: #8f2020; }
+        .s-expirado { background: #ececf0; color: #55535c; }
 
         .p-cliente { font-size: 14px; font-weight: 600; }
         .p-contato { font-size: 13px; color: var(--suave); margin-bottom: 10px; }
@@ -65,6 +67,8 @@
             font-size: 13px; background: var(--fundo);
             padding: 8px 10px; border-radius: 8px; margin-bottom: 10px;
         }
+        .p-reserva { font-size: 13px; color: var(--suave); margin-bottom: 10px; }
+        .p-reserva.expirou { color: #8f2020; }
         .p-obs { font-size: 13px; font-style: italic; color: var(--suave); margin-bottom: 10px; }
 
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
@@ -150,6 +154,7 @@
 <div class="container">
     <div class="abas">
         <button class="aba ativa" data-filtro="novo">Novos</button>
+        <button class="aba" data-filtro="expirado">Expirados</button>
         <button class="aba" data-filtro="confirmado">Confirmados</button>
         <button class="aba" data-filtro="cancelado">Cancelados</button>
         <button class="aba" data-filtro="todos">Todos</button>
@@ -184,6 +189,15 @@
         const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         if (mesmoDia) return "hoje " + hora;
         return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " + hora;
+    }
+
+    // Hora da reserva (ex: "19:52"). Pedidos antigos, criados antes da
+    // reserva existir, vêm com data vazia (ano 0001) e devolvem null.
+    function horaReserva(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        if (isNaN(d) || d.getFullYear() < 2000) return null;
+        return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     }
 
     function soDigitos(t) { return (t || "").replace(/\D/g, ""); }
@@ -229,13 +243,27 @@
                 ? "🚚 <b>Caravana</b> — " + escapar(p.endereco)
                 : "🏬 <b>Retirada na loja</b>";
 
+            // Linha da reserva: mostra até quando vale (novo) ou quando
+            // venceu (expirado). Pedidos antigos sem prazo não mostram nada.
+            const ate = horaReserva(p.expira_em);
+            let reserva = "";
+            if (ate && p.status === "novo") {
+                reserva = '<div class="p-reserva">⏳ Reservado até ' + ate + '</div>';
+            } else if (ate && p.status === "expirado") {
+                reserva = '<div class="p-reserva expirou">⌛ Reserva expirou às ' + ate +
+                    '. Se o cliente já pagou, confirme: o sistema confere se ainda há estoque.</div>';
+            }
+
             const botoesImprimir =
                 '<div class="acoes-linha">' +
                 '<button class="btn b-imprimir" onclick="imprimir(' + p.id + ', \'a4\')">Imprimir A4</button>' +
                 '<button class="btn b-imprimir" onclick="imprimir(' + p.id + ', \'cupom\')">Imprimir cupom</button>' +
                 '</div>';
 
-            const acoes = p.status === "novo"
+            // Novos e expirados podem ser confirmados ou cancelados.
+            const aguardando = p.status === "novo" || p.status === "expirado";
+
+            const acoes = aguardando
                 ? '<div class="acoes">' +
                 '<button class="btn b-confirmar" onclick="agir(' + p.id + ', \'confirmar\')">Confirmar e dar baixa</button>' +
                 '<button class="btn b-cancelar" onclick="agir(' + p.id + ', \'cancelar\')">Cancelar</button>' +
@@ -254,6 +282,7 @@
                 '<div class="p-contato">' + escapar(p.telefone) +
                 ' · <a href="https://wa.me/55' + soDigitos(p.telefone) + '" target="_blank">abrir conversa</a></div>' +
                 '<div class="p-entrega">' + entrega + '</div>' +
+                reserva +
                 (p.observacao ? '<div class="p-obs">"' + escapar(p.observacao) + '"</div>' : '') +
                 '<table>' + linhas + '</table>' +
                 '<div class="total">Total: R$ ' + moeda(p.total) + '</div>' +
