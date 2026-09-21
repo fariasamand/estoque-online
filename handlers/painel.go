@@ -10,6 +10,7 @@ import (
 )
 
 func PainelPedidosHandler(w http.ResponseWriter, r *http.Request) {
+	expirarReservasVencidas()
 	tmpl, err := template.ParseFiles("templates/pedidos.html")
 	if err != nil {
 		http.Error(w, "erro ao carregar página", http.StatusInternalServerError)
@@ -21,6 +22,7 @@ func PainelPedidosHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListaPedidosHandler(w http.ResponseWriter, r *http.Request) {
+	expirarReservasVencidas()
 	var pedidos []models.Pedido
 
 	err := db.Preload("Itens").Order("id desc").Limit(100).Find(&pedidos).Error
